@@ -1,0 +1,103 @@
+#!perl
+
+# DATE
+# VERSION
+
+use strict;
+use warnings;
+
+use Getopt::Long::EvenLess;
+
+my %Opts = (
+    data_file => ($ENV{HOME} ? "$ENV{HOME}/" : "") . "backoff.dat",
+    round => 0,
+    print_only => 0,
+);
+my $Config;
+
+sub get_options {
+    GetOptions(
+        'help|h|?' => sub {
+            print <<'_';
+backoff - Backoff using one of several available strategies
+
+Usage:
+  backoff [COMMONOPTS] strategy <STRATEGYNAME> [STRATEGYOPTS]...
+  backoff [COMMONOPTS] success [OPTS]... [TIMESTAMP]
+  backoff [COMMONOPTS] failure [OPTS]... [TIMESTAMP]
+  backoff --help (-h, -?)
+  backoff --version (-v)
+
+Common options:
+  --data-file, -f   Specify path for ~/backoff.dat
+
+Options for success/failure subcommands:
+  --print-only, -n  Do not sleep but print only the next delay
+  --round, -i       Round next delay to the nearest second
+
+See documentation for more details. See documentation of Algorithm::Retry::* for
+each strategy's options.
+
+_
+                exit 0;
+        },
+        'version|v' => sub {
+            no warnings 'once';
+            print "backoff version " . ($main::VERSION || "dev") . "\n";
+            exit 0;
+        },
+    );
+}
+
+sub run {
+}
+
+### main
+
+get_options();
+run();
+
+# ABSTRACT: Backoff using one of several available strategies.
+# PODNAME:
+
+=head1 SYNOPSIS
+
+First, define strategy to use, e.g.:
+
+ % backoff strategy Constant --delay-on-success 1 --delay-on-failure 5
+
+or:
+
+ % backoff strategy ExponentialBackoff --initial-delay 0.5 --max-delay 1000 --jitter-factor 0.25
+
+This will write F<~/backoff.dat> (you can customize the data file using
+C<--data-file> or C<-f>). Then you can log success or failure:
+
+ % backoff success
+ % backoff failure -t 1554725212 ;# timestamp is optional, defaults to current time
+
+The backoff will sleep for a number of seconds according to the suggested delay
+time from the strategy. It will exit with code 1 and error message "backoff:
+Maximum number of attempts succeeded, aborting" when you log failure exceeding
+the maximum number of attempts.
+
+If you do not want B<backoff> to sleep but simply output the suggested next
+delay, use C<--print-only> (C<-n>):
+
+ % backoff failure -n
+ 12
+
+If you want to round to the nearest number of seconds, use C<--round> (C<-i>).
+
+If you want to reset the backoff process, you simply run C<backoff strategy>
+again.
+
+
+=head1 FILES
+
+F<~/backoff.dat>
+
+
+=head1 SEE ALSO
+
+Available strategies are implemented in C<Algorithm::Retry::*> modules.
